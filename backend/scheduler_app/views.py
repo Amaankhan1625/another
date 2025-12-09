@@ -182,12 +182,23 @@ class SectionViewSet(viewsets.ModelViewSet):
         data = request.data.copy()
         course_instructor_assignments = data.pop('course_instructor_assignments', {})
 
+        # Collect course IDs from course_instructor_assignments to ensure they are linked to the section
+        course_ids = []
+        if isinstance(course_instructor_assignments, dict):
+            course_ids = [int(k) for k in course_instructor_assignments.keys() if k.isdigit()]
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         section = serializer.save()
 
         # Update course-instructor assignments if provided
         self._update_course_instructors(course_instructor_assignments)
+
+        # Ensure courses from course_instructor_assignments are linked to the section
+        if course_ids:
+            courses = Course.objects.filter(id__in=course_ids)
+            section.courses.add(*courses)
+
         # Re-serialize to include updated instructor assignments
         serializer = self.get_serializer(section)
         headers = self.get_success_headers(serializer.data)
@@ -202,11 +213,22 @@ class SectionViewSet(viewsets.ModelViewSet):
         data = request.data.copy()
         course_instructor_assignments = data.pop('course_instructor_assignments', {})
 
+        # Collect course IDs from course_instructor_assignments to ensure they are linked to the section
+        course_ids = []
+        if isinstance(course_instructor_assignments, dict):
+            course_ids = [int(k) for k in course_instructor_assignments.keys() if k.isdigit()]
+
         serializer = self.get_serializer(instance, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
         section = serializer.save()
 
         self._update_course_instructors(course_instructor_assignments)
+
+        # Ensure courses from course_instructor_assignments are linked to the section
+        if course_ids:
+            courses = Course.objects.filter(id__in=course_ids)
+            section.courses.add(*courses)
+
         # Re-serialize to include updated instructor assignments
         serializer = self.get_serializer(section)
         return Response(serializer.data)
