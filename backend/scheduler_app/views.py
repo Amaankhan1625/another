@@ -188,6 +188,8 @@ class SectionViewSet(viewsets.ModelViewSet):
 
         # Update course-instructor assignments if provided
         self._update_course_instructors(course_instructor_assignments)
+        # Re-serialize to include updated instructor assignments
+        serializer = self.get_serializer(section)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
@@ -205,6 +207,8 @@ class SectionViewSet(viewsets.ModelViewSet):
         section = serializer.save()
 
         self._update_course_instructors(course_instructor_assignments)
+        # Re-serialize to include updated instructor assignments
+        serializer = self.get_serializer(section)
         return Response(serializer.data)
 
     def _update_course_instructors(self, course_instructor_assignments):
