@@ -20,7 +20,7 @@ interface Department {
 interface GenerateForm {
   department_ids: number[]
   years: number[]
-  semester: number
+  semester: string | number
   population_size: number
   mutation_rate: number
   elite_rate: number
@@ -37,7 +37,7 @@ export default function GenerateTimetablePage() {
     defaultValues: {
       department_ids: [],
       years: [],
-      semester: 1,
+      semester: 'odd',
       population_size: 100,
       mutation_rate: 0.1,
       elite_rate: 0.1,
@@ -56,8 +56,8 @@ export default function GenerateTimetablePage() {
   ]
 
   const semesters = [
-    { value: 1, label: 'Semester 1' },
-    { value: 2, label: 'Semester 2' },
+    { value: 'odd', label: 'Odd Semesters (1, 3, ...)' },
+    { value: 'even', label: 'Even Semesters (2, 4, ...)' },
   ]
 
   useEffect(() => {
@@ -186,7 +186,7 @@ export default function GenerateTimetablePage() {
           {/* Semester Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              Select Semester
+              Select Semester Type
             </label>
             <div className="grid grid-cols-2 gap-3">
               {semesters.map(semester => (

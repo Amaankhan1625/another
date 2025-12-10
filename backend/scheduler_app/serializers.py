@@ -194,7 +194,7 @@ class TimetableGenerationSerializer(serializers.Serializer):
         child=serializers.IntegerField(),
         allow_empty=False
     )
-    semester = serializers.IntegerField()
+    semester = serializers.CharField()
     population_size = serializers.IntegerField(default=50, min_value=10, max_value=200)
     mutation_rate = serializers.FloatField(default=0.1, min_value=0.01, max_value=0.5)
     elite_rate = serializers.FloatField(default=0.1, min_value=0.05, max_value=0.3)

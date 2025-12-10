@@ -9,24 +9,24 @@ logger = logging.getLogger(__name__)
 
 
 class GeneticAlgorithm:
-    def __init__(self, department_ids, years, semester, population_size=50,
+    def __init__(self, department_ids, years, semesters, population_size=50,
                  mutation_rate=0.1, elite_rate=0.1, generations=500):
         self.department_ids = department_ids if isinstance(department_ids, list) else [department_ids]
         self.years = years if isinstance(years, list) else [years]
-        self.semester = semester
+        self.semesters = semesters if isinstance(semesters, list) else [semesters]
         self.population_size = population_size
         self.mutation_rate = mutation_rate
         self.elite_rate = elite_rate
         self.generations = generations
 
-        logger.info("GA Initializing with: department_ids=%s, years=%s, semester=%s", department_ids, years, semester)
+        logger.info("GA Initializing with: department_ids=%s, years=%s, semesters=%s", department_ids, years, semesters)
 
         # Get data from database for selected departments, years, and semester
         self.departments = Department.objects.filter(id__in=self.department_ids)
         self.sections = Section.objects.filter(
             department__in=self.departments,
             year__in=self.years,
-            semester=self.semester
+            semester__in=self.semesters
         )
         self.instructors = Instructor.objects.filter(is_available=True)
         self.rooms = Room.objects.filter(is_available=True)
@@ -98,7 +98,7 @@ class GeneticAlgorithm:
 
         for section in self.sections:
             # Get courses for this section that match the selected semester
-            candidate_courses = section.courses.filter(semester=self.semester)
+            candidate_courses = section.courses.filter(semester__in=self.semesters)
 
             logger.info("GA DEBUG: Section %s (Dept: %s, Year: %d) -> courses loaded: %d",
                        section.section_id, section.department.name if section.department else 'None', section.year, len(candidate_courses))

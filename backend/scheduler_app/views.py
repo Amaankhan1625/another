@@ -369,8 +369,18 @@ class SectionViewSet(viewsets.ModelViewSet):
         """
         section = self.get_object()
         try:
-            # Assign courses for the year, department, and semester to match section
-            year_courses = Course.objects.filter(year=section.year, department=section.department, semester=section.semester)
+            # Determine if the section's semester is odd or even
+            if section.semester % 2 == 0:
+                semesters_to_include = [2, 4, 6, 8]
+            else:
+                semesters_to_include = [1, 3, 5, 7]
+
+            # Assign courses for the year, department, and all relevant semesters
+            year_courses = Course.objects.filter(
+                year=section.year,
+                department=section.department,
+                semester__in=semesters_to_include
+            )
             section.courses.set(year_courses)
             return Response({
                 'message': 'Courses auto-assigned to section',
@@ -535,12 +545,23 @@ class TimetableViewSet(viewsets.ModelViewSet):
         if not department_ids or not years:
             return Response({'error': 'department_ids and years (or department_id/year) are required'}, status=status.HTTP_400_BAD_REQUEST)
 
+        semester_param = data.get('semester')
+        if semester_param == 'odd':
+            semesters = [1, 3, 5, 7]
+        elif semester_param == 'even':
+            semesters = [2, 4, 6, 8]
+        else:
+            try:
+                semesters = [int(semester_param)]
+            except (ValueError, TypeError):
+                return Response({'error': 'Invalid semester format. Use "odd", "even", or a number.'}, status=status.HTTP_400_BAD_REQUEST)
+
         # Auto-assign courses to sections if not already assigned
         departments = Department.objects.filter(id__in=department_ids)
         sections = Section.objects.filter(
             department__in=departments,
             year__in=years,
-            semester=data['semester']
+            semester__in=semesters
         )
         for section in sections:
             if section.courses.count() == 0:
@@ -549,11 +570,12 @@ class TimetableViewSet(viewsets.ModelViewSet):
                 section.courses.set(year_courses)
 
         try:
-            logger.info(f"Starting GA with department_ids={department_ids}, years={years}, semester={data['semester']}")
+            logger.info(f"Starting GA with department_ids={department_ids}, years={years}, semesters={semesters}")
+
             ga = GeneticAlgorithm(
                 department_ids=department_ids,
                 years=years,
-                semester=data['semester'],
+                semesters=semesters,  # Pass list of semesters
                 population_size=data.get('population_size', 100),
                 mutation_rate=data.get('mutation_rate', 0.1),
                 elite_rate=data.get('elite_rate', 0.1),
@@ -572,14 +594,14 @@ class TimetableViewSet(viewsets.ModelViewSet):
                     keys = ('instructor', 'room', 'meeting_time', 'course', 'section')
                     if not all(k in class_obj and class_obj[k] is not None for k in keys):
                         missing_assignments += 1
-                        
+
             logger.info(f"Classes skipped due to missing assignments: {missing_assignments}")
 
             # naming metadata
             departments_qs = Department.objects.filter(id__in=department_ids)
             department_names = [d.name for d in departments_qs]
             year_names = [f"Year {y}" for y in sorted(years)]
-            timetable_name = f"Combined Timetable - {', '.join(department_names)} - {', '.join(year_names)} - Semester {data['semester']} - {uuid.uuid4().hex[:8]}"
+            timetable_name = f"Combined Timetable - {', '.join(department_names)} - {', '.join(year_names)} - Semesters {semester_param} - {uuid.uuid4().hex[:8]}"
 
             primary_department = departments_qs.first()
 
@@ -588,7 +610,7 @@ class TimetableViewSet(viewsets.ModelViewSet):
                     name=timetable_name,
                     department=primary_department,
                     year=min(years),
-                    semester=data['semester'],
+                    semester=semesters[0],  # Use the first semester for the record
                     fitness=fitness,
                     created_by=request.user.username if request.user.is_authenticated else "admin"
                 )
@@ -621,7 +643,7 @@ class TimetableViewSet(viewsets.ModelViewSet):
                 'total_classes': len(best_solution) if best_solution else 0,
                 'departments': department_names,
                 'years': sorted(years),
-                'semester': data['semester']
+                'semester': semester_param
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
@@ -698,12 +720,21 @@ class TimetableViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):
         timetable = self.get_object()
+
+        # Determine semester parity
+        if timetable.semester % 2 == 0:
+            semesters_to_deactivate = [2, 4, 6, 8]
+        else:
+            semesters_to_deactivate = [1, 3, 5, 7]
+
+        # Deactivate all other timetables for the same department, year, and semester parity
         Timetable.objects.filter(
             department=timetable.department,
             year=timetable.year,
-            semester=timetable.semester
+            semester__in=semesters_to_deactivate
         ).update(is_active=False)
 
+        # Activate the selected timetable
         timetable.is_active = True
         timetable.save()
         return Response({'message': 'Timetable activated successfully'})
