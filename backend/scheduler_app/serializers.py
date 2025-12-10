@@ -105,10 +105,20 @@ class SectionSerializer(serializers.ModelSerializer):
     instructor_names = serializers.SerializerMethodField()
     course_names = serializers.SerializerMethodField()
     courses_detail = serializers.SerializerMethodField()
+    courses = serializers.PrimaryKeyRelatedField(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = Section
         fields = '__all__'
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if self.instance:
+            fields['department'].read_only = True
+        return fields
 
     def get_instructor_names(self, obj):
         return [instructor.name for instructor in obj.instructors.all()]

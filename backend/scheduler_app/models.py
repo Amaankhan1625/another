@@ -206,14 +206,16 @@ class Course(models.Model):
 # Section
 # -------------------------
 class Section(models.Model):
+    COURSE_YEAR_CHOICES = [(1, 1), (2, 2), (3, 3), (4, 4)]
+    COURSE_SEMESTER_CHOICES = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8)]
     section_id = models.CharField(max_length=20, unique=True)
     department = models.ForeignKey(
         Department,
         on_delete=models.CASCADE,
         related_name='sections'
     )
-    year = models.IntegerField(choices=[(1,1),(2,2),(3,3),(4,4)])
-    semester = models.IntegerField()
+    year = models.IntegerField(choices=COURSE_YEAR_CHOICES)
+    semester = models.IntegerField(choices=COURSE_SEMESTER_CHOICES)
     num_students = models.IntegerField(default=60)
     room = models.ForeignKey(
         Room,
@@ -260,14 +262,16 @@ class Class(models.Model):
 # Timetable
 # -------------------------
 class Timetable(models.Model):
+    COURSE_YEAR_CHOICES = [(1, 1), (2, 2), (3, 3), (4, 4)]
+    COURSE_SEMESTER_CHOICES = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8)]
     name = models.CharField(max_length=100)
     department = models.ForeignKey(
         Department,
         on_delete=models.CASCADE,
         related_name='timetables'
     )
-    year = models.IntegerField(choices=[(1,1),(2,2),(3,3),(4,4)])
-    semester = models.IntegerField()
+    year = models.IntegerField(choices=COURSE_YEAR_CHOICES)
+    semester = models.IntegerField(choices=COURSE_SEMESTER_CHOICES)
     classes = models.ManyToManyField(Class, blank=True, related_name='timetables')
     fitness = models.IntegerField(default=0)
     is_active = models.BooleanField(default=False)
