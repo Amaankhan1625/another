@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from scheduler_app.models import Department, Course
+from scheduler_app.models import Department, Course, Section
 import json
 
 class Command(BaseCommand):
@@ -333,3 +333,36 @@ class Command(BaseCommand):
                         self.stdout.write(f"Course {course} already exists.")
 
         self.stdout.write(self.style.SUCCESS(f"Total courses added: {added_courses}"))
+
+        # Create sections
+        added_sections = 0
+        for dept in Department.objects.all():
+            for year in range(1, 5):
+                # Determine num_students based on department
+                if dept.code == 'DS':
+                    num_students = 30
+                elif dept.code == 'IT':
+                    num_students = 30
+                elif dept.code == 'CSE':
+                    num_students = 60
+                else:
+                    num_students = 60  # default
+
+                for section_letter in ['A', 'B']:
+                    section_id = f"{dept.code}-{year}{section_letter}"
+                    for i in range(2):
+                        sem = year * 2 - 1 + i
+                        section, created = Section.objects.get_or_create(
+                            section_id=section_id,
+                            department=dept,
+                            year=year,
+                            semester=sem,
+                            defaults={'num_students': num_students}
+                        )
+                        if created:
+                            self.stdout.write(self.style.SUCCESS(f"Added section: {section}"))
+                            added_sections += 1
+                        else:
+                            self.stdout.write(f"Section {section} already exists.")
+        
+        self.stdout.write(self.style.SUCCESS(f"Total sections added: {added_sections}"))
